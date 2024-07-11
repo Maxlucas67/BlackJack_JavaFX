@@ -1,0 +1,182 @@
+package com.example.finalproject2;
+
+import javafx.animation.Interpolator;
+import javafx.animation.TranslateTransition;
+import javafx.application.Application;
+import javafx.beans.binding.Bindings;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+
+import java.io.File;
+
+public class MainMenu extends Application {
+
+    private static final double SCENE_WIDTH = 1920;
+    private static final double SCENE_HEIGHT = 1080;
+
+    private static final String IMAGE_PATH_1 = "C:/Users/lucie/Downloads/Java2/FinalProject2/src/main/resources/com/example/finalproject2/KofH.png";
+    private static final String IMAGE_PATH_2 = "C:/Users/lucie/Downloads/Java2/FinalProject2/src/main/resources/com/example/finalproject2/KofH0.png";
+    private final int NUM_COLUMNS = 12;
+    private final int NUM_ROWS = 14;
+
+    private Rectangle topRectangle;
+    private Rectangle bottomRectangle;
+
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Blackjack Game");
+
+        StackPane root = new StackPane();
+        root.setStyle("-fx-background-color: black;");
+
+        Rectangle whiteRectangle = new Rectangle();
+        whiteRectangle.setFill(Color.WHITE);
+        whiteRectangle.widthProperty().bind(primaryStage.widthProperty());
+        whiteRectangle.heightProperty().bind(Bindings.divide(primaryStage.heightProperty(), 2));
+        root.getChildren().add(whiteRectangle);
+
+        topRectangle = new Rectangle();
+        topRectangle.setFill(Color.BLACK);
+        topRectangle.widthProperty().bind(primaryStage.widthProperty());
+        topRectangle.heightProperty().bind(Bindings.divide(primaryStage.heightProperty(), 2));
+        StackPane.setAlignment(topRectangle, Pos.TOP_CENTER);
+
+        bottomRectangle = new Rectangle();
+        bottomRectangle.setFill(Color.BLACK);
+        bottomRectangle.widthProperty().bind(primaryStage.widthProperty());
+        bottomRectangle.heightProperty().bind(Bindings.divide(primaryStage.heightProperty(), 2));
+        StackPane.setAlignment(bottomRectangle, Pos.BOTTOM_CENTER);
+
+        GridPane gridPane = new GridPane();
+
+        Image image1 = new Image(new File(IMAGE_PATH_1).toURI().toString());
+        Image image2 = new Image(new File(IMAGE_PATH_2).toURI().toString());
+
+        for (int col = 0; col < NUM_COLUMNS; col++) {
+            for (int row = 0; row < NUM_ROWS; row++) {
+                Image image = (col % 2 == 0) ? image1 : image2;
+                ImageView imageView = createImageView(image);
+                imageView.fitWidthProperty().bind(Bindings.divide(primaryStage.widthProperty(), NUM_COLUMNS));
+                imageView.fitHeightProperty().bind(Bindings.divide(primaryStage.heightProperty(), NUM_ROWS / 2));
+                gridPane.add(imageView, col, row);
+
+                TranslateTransition transition = new TranslateTransition(Duration.seconds(10), imageView);
+                if (col % 2 == 0) {
+                    transition.setFromY(0);
+                    transition.setToY(-SCENE_HEIGHT * 2);
+                } else {
+                    transition.setFromY(0);
+                    transition.setToY(SCENE_HEIGHT * 2);
+                }
+                transition.setInterpolator(Interpolator.LINEAR);
+                transition.play();
+
+                transition.currentTimeProperty().addListener((obs, oldVal, newVal) -> {
+                    double halfHeight = SCENE_HEIGHT / 2;
+                    double translateY = newVal.toMillis() / 10000.0 * SCENE_HEIGHT - halfHeight;
+                    topRectangle.setTranslateY(-translateY);
+                    bottomRectangle.setTranslateY(translateY);
+                });
+
+                if (col == NUM_COLUMNS - 1 && row == NUM_ROWS - 1) {
+                    transition.setOnFinished(e -> {
+                        VBox vbox = createButtonsVBox(primaryStage);
+                        Text titleText = createTitleText();
+                        root.getChildren().addAll(titleText, vbox);
+                        titleText.setTranslateY(-180);
+                    });
+                }
+            }
+        }
+
+        root.getChildren().addAll(topRectangle, bottomRectangle, gridPane);
+
+        Scene scene = new Scene(root, SCENE_WIDTH, SCENE_HEIGHT);
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    private VBox createButtonsVBox(Stage primaryStage) {
+        Button startButton = createStyledButton("Start");
+        Button settingsButton = createStyledButton("Settings");
+        Button creditsButton = createStyledButton("Credits");
+        Button exitButton = createStyledButton("Exit");
+
+        startButton.setOnAction(e -> {
+        });
+        settingsButton.setOnAction(e -> {
+            switchToScene(primaryStage, new Settings().getScene());
+        });
+        creditsButton.setOnAction(e -> {
+            switchToScene(primaryStage, new Credits().getScene());
+        });
+        exitButton.setOnAction(e -> {
+            exitGame();
+        });
+
+        VBox vbox = new VBox(20);
+        vbox.getChildren().addAll(startButton, settingsButton, creditsButton, exitButton);
+        vbox.setAlignment(Pos.CENTER);
+
+        vbox.translateXProperty().bind(primaryStage.widthProperty().divide(2).subtract(vbox.widthProperty().divide(2)));
+        vbox.translateYProperty().bind(primaryStage.heightProperty().divide(2).subtract(vbox.heightProperty().divide(2)).add(30));
+        return vbox;
+    }
+
+    private Button createStyledButton(String text) {
+        Button button = new Button(text);
+        button.setStyle("-fx-background-color: transparent; " +
+                "-fx-text-fill: black; " +
+                "-fx-font-size: 18px; " +
+                "-fx-font-weight: bold; " +
+                "-fx-padding: 10 20; " +
+                "-fx-border-color: black; " +
+                "-fx-border-width: 2px; " +
+                "-fx-border-radius: 30;");
+        return button;
+    }
+
+    private void switchToScene(Stage stage, Scene newScene) {
+        boolean wasFullscreen = stage.isFullScreen();
+        newScene.getWindow().setWidth(stage.getWidth());
+        newScene.getWindow().setHeight(stage.getHeight());
+        stage.setScene(newScene);
+        if (wasFullscreen) {
+            stage.setFullScreen(true);
+        }
+    }
+
+    private void exitGame() {
+        System.exit(0);
+    }
+
+    private ImageView createImageView(Image image) {
+        ImageView imageView = new ImageView(image);
+        imageView.setPreserveRatio(false);
+        return imageView;
+    }
+
+    private Text createTitleText() {
+        Text titleText = new Text("Blackjack");
+        titleText.setFont(Font.font("Gill Sans", FontWeight.BOLD, 48));
+        titleText.setFill(Color.BLACK);
+        return titleText;
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
